@@ -1,3 +1,5 @@
+import { HttpHeaders, HttpParams } from '@angular/common/http';
+
 // Function Data
 
 export interface SignInData {
@@ -92,4 +94,11 @@ export interface Angular2TokenOptions {
     oAuthWindowOptions?:        { [key:string]: string; };
 
     globalOptions?:             GlobalOptions;
+}
+
+export interface RequestOptions {
+    headers?: HttpHeaders|{[header: string]: string|string[]};
+    params?: HttpParams|{[param: string]: string|string[]};
+    reportProgress?: boolean;
+    withCredentials?: boolean;
 }

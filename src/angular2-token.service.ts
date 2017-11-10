@@ -1,14 +1,9 @@
 import { Injectable, Optional } from '@angular/core';
 import { ActivatedRoute, Router, CanActivate } from '@angular/router';
 import {
-    Http,
-    Response,
-    Headers,
-    Request,
-    RequestMethod,
-    RequestOptions,
-    RequestOptionsArgs
-} from '@angular/http';
+    HttpClient,
+    HttpHeaders
+} from '@angular/common/http';
 
 import { Observable } from 'rxjs/Observable';
 import 'rxjs/add/operator/share';
@@ -27,7 +22,9 @@ import {
     UserData,
     AuthData,
 
-    Angular2TokenOptions
+    Angular2TokenOptions,
+
+    RequestOptions
 } from './angular2-token.model';
 
 @Injectable()
@@ -48,9 +45,9 @@ export class Angular2TokenService implements CanActivate {
         return this.atCurrentAuthData;
     }
 
-    get currentAuthHeaders(): Headers {
+    get currentAuthHeaders(): HttpHeaders {
         if (this.atCurrentAuthData != null) {
-            return new Headers({
+            return new HttpHeaders({
                 'access-token': this.atCurrentAuthData.accessToken,
                 'client':       this.atCurrentAuthData.client,
                 'expiry':       this.atCurrentAuthData.expiry,
@@ -59,7 +56,7 @@ export class Angular2TokenService implements CanActivate {
             });
         }
 
-        return new Headers;
+        return new HttpHeaders;
     }
 
     private atOptions: Angular2TokenOptions;
@@ -68,7 +65,7 @@ export class Angular2TokenService implements CanActivate {
     private atCurrentUserData: UserData;
 
     constructor(
-        private http: Http,
+        private http: HttpClient,
         @Optional() private activatedRoute: ActivatedRoute,
         @Optional() private router: Router
     ) { }
@@ -310,104 +307,119 @@ export class Angular2TokenService implements CanActivate {
      *
      */
 
-    get(url: string, options?: RequestOptionsArgs): Observable<Response> {
-        return this.request(this.mergeRequestOptionsArgs({
-            url:    this.getApiPath() + url,
-            method: RequestMethod.Get
-        }, options));
-    }
-
-    post(url: string, body: any, options?: RequestOptionsArgs): Observable<Response> {
-        return this.request(this.mergeRequestOptionsArgs({
-            url:    this.getApiPath() + url,
-            method: RequestMethod.Post,
-            body:   body
-        }, options));
-    }
-
-    put(url: string, body: any, options?: RequestOptionsArgs): Observable<Response> {
-        return this.request(this.mergeRequestOptionsArgs({
-            url:    this.getApiPath() + url,
-            method: RequestMethod.Put,
-            body:   body
-        }, options));
-    }
-
-    delete(url: string, options?: RequestOptionsArgs): Observable<Response> {
-        return this.request(this.mergeRequestOptionsArgs({
-            url:    this.getApiPath() + url,
-            method: RequestMethod.Delete
-        }, options));
-    }
-
-    patch(url: string, body: any, options?: RequestOptionsArgs): Observable<Response> {
-        return this.request(this.mergeRequestOptionsArgs({
-            url:    this.getApiPath() + url,
-            method: RequestMethod.Patch,
-            body:   body
-        }, options));
-    }
-
-    head(path: string, options?: RequestOptionsArgs): Observable<Response> {
-        return this.request({
-            method: RequestMethod.Head,
-            url:    this.getApiPath() + path
-        });
-    }
-
-    options(url: string, options?: RequestOptionsArgs): Observable<Response> {
-        return this.request(this.mergeRequestOptionsArgs({
-            url:    this.getApiPath() + url,
-            method: RequestMethod.Options
-        }, options));
-    }
-
-    // Construct and send Http request
-    request(options: RequestOptionsArgs): Observable<Response> {
-
-        let baseRequestOptions: RequestOptions;
-        let baseHeaders:        { [key:string]: string; } = this.atOptions.globalOptions.headers;
-
-        // Get auth data from local storage
-        this.getAuthDataFromStorage();
-        
-        // Merge auth headers to request if set
-        if (this.atCurrentAuthData != null) {
-            (<any>Object).assign(baseHeaders, {
-                'access-token': this.atCurrentAuthData.accessToken,
-                'client':       this.atCurrentAuthData.client,
-                'expiry':       this.atCurrentAuthData.expiry,
-                'token-type':   this.atCurrentAuthData.tokenType,
-                'uid':          this.atCurrentAuthData.uid
-            });
-        }
-
-        baseRequestOptions = new RequestOptions({
-            headers: new Headers(baseHeaders)
-        });
-
-        // Merge standard and custom RequestOptions
-        baseRequestOptions = baseRequestOptions.merge(options);
-
-        let response = this.http.request(new Request(baseRequestOptions)).share();
+    get(url: string, options?: RequestOptions): Observable<any> {
+        let response = this.http.get(this.getApiPath() + url, options);
         this.handleResponse(response);
-
         return response;
     }
 
-    private mergeRequestOptionsArgs(options: RequestOptionsArgs, addOptions?: RequestOptionsArgs): RequestOptionsArgs {
-
-        let returnOptions: RequestOptionsArgs = options;
-
-        if (options)
-            (<any>Object).assign(returnOptions, addOptions);
-
-        return returnOptions;
+    post(url: string, body: any, options?: RequestOptions): Observable<any> {
+        let response = this.http.post(this.getApiPath() + url, body, options);
+        this.handleResponse(response);
+        return response;
     }
 
+    put(url: string, body: any, options?: RequestOptions): Observable<any> {
+        let response = this.http.put(this.getApiPath() + url, body, options);
+        this.handleResponse(response);
+        return response;
+    }
+
+    delete(url: string, options?: RequestOptions): Observable<any> {
+        let response = this.http.delete(this.getApiPath() + url, options);
+        this.handleResponse(response);
+        return response;
+    }
+
+    patch(url: string, body: any, options?: RequestOptions): Observable<any> {
+        let response = this.http.patch(this.getApiPath() + url, body, options);
+        this.handleResponse(response);
+        return response;
+    }
+
+    head(url: string, options?: RequestOptions): Observable<any> {
+        let response = this.http.head(this.getApiPath() + url, options);
+        this.handleResponse(response);
+        return response;
+    }
+
+    options(url: string, options?: RequestOptions): Observable<any> {
+        let response = this.http.options(this.getApiPath() + url, options);
+        this.handleResponse(response);
+        return response;
+    }
+
+    setCurrentAuthHeaders(): HttpHeaders {
+        // Get auth data from local storage
+        this.getAuthDataFromStorage();
+
+        // Get auth data from query params to override local storage data
+        this.getAuthDataFromParams();
+
+        let headers: HttpHeaders = new HttpHeaders();
+
+        // Merge auth headers to request if set
+        if (this.atCurrentAuthData != null) {
+            headers.append('access-token', this.atCurrentAuthData.accessToken);
+            headers.append('client', this.atCurrentAuthData.client);
+            headers.append('expiry', this.atCurrentAuthData.expiry);
+            headers.append('token-type', this.atCurrentAuthData.tokenType);
+            headers.append('uid', this.atCurrentAuthData.uid);
+        }
+
+        Object.keys(this.atOptions.globalOptions.headers).forEach(
+            (key) => headers.append(key, this.atOptions.globalOptions.headers[key])
+        );
+
+        return headers;
+    }
+
+    // // Construct and send Http request
+    // request(options: RequestOptionsArgs): Observable<Response> {
+    //
+    //     let baseRequestOptions: RequestOptions;
+    //     let baseHeaders:        { [key:string]: string; } = this.atOptions.globalOptions.headers;
+    //
+    //     // Get auth data from local storage
+    //     this.getAuthDataFromStorage();
+    //
+    //     // Merge auth headers to request if set
+    //     if (this.atCurrentAuthData != null) {
+    //         (<any>Object).assign(baseHeaders, {
+    //             'access-token': this.atCurrentAuthData.accessToken,
+    //             'client':       this.atCurrentAuthData.client,
+    //             'expiry':       this.atCurrentAuthData.expiry,
+    //             'token-type':   this.atCurrentAuthData.tokenType,
+    //             'uid':          this.atCurrentAuthData.uid
+    //         });
+    //     }
+    //
+    //     baseRequestOptions = new RequestOptions({
+    //         headers: new Headers(baseHeaders)
+    //     });
+    //
+    //     // Merge standard and custom RequestOptions
+    //     baseRequestOptions = baseRequestOptions.merge(options);
+    //
+    //     let response = this.http.request(new Request(baseRequestOptions)).share();
+    //     this.handleResponse(response);
+    //
+    //     return response;
+    // }
+    //
+    // private mergeRequestOptionsArgs(options: RequestOptionsArgs, addOptions?: RequestOptionsArgs): RequestOptionsArgs {
+    //
+    //     let returnOptions: RequestOptionsArgs = options;
+    //
+    //     if (options)
+    //         (<any>Object).assign(returnOptions, addOptions);
+    //
+    //     return returnOptions;
+    // }
+
     // Check if response is complete and newer, then update storage
-    private handleResponse(response: Observable<Response>): void {
-        response.subscribe(res => {
+    private handleResponse(request: Observable<any>): void {
+        request.subscribe(res => {
             this.getAuthHeadersFromResponse(<any>res);
         }, error => {
             this.getAuthHeadersFromResponse(<any>error);
