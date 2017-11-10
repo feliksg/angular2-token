@@ -4,7 +4,7 @@ import { Observable } from 'rxjs/Observable';
 import { Angular2TokenService } from './angular2-token.service';
 
 @Injectable()
-export class AuthInterceptor implements HttpInterceptor {
+export class Angular2TokenInterceptor implements HttpInterceptor {
     constructor(private _angular2TokenService: Angular2TokenService ) {}
 
     intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
