@@ -1,4 +1,4 @@
-import { Injectable, Optional } from '@angular/core';
+import { Inject, Injectable, Optional } from '@angular/core';
 import { ActivatedRoute, Router, CanActivate } from '@angular/router';
 import {
     HttpClient,
@@ -65,9 +65,9 @@ export class Angular2TokenService implements CanActivate {
     private atCurrentUserData: UserData;
 
     constructor(
-        private http: HttpClient,
-        @Optional() private activatedRoute: ActivatedRoute,
-        @Optional() private router: Router
+        @Inject(HttpClient) private http: HttpClient,
+        @Optional() @Inject(ActivatedRoute) private activatedRoute: ActivatedRoute,
+        @Optional() @Inject(Router) private router: Router
     ) { }
 
     userSignedIn(): boolean {
